@@ -1,0 +1,1862 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Red-Blue Estimation Task</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Arial, Helvetica, sans-serif;
+        --bg: #eef1f4;
+        --surface: #ffffff;
+        --surface-2: #f7f9fb;
+        --text: #202832;
+        --muted: #647184;
+        --border: #d5dce5;
+        --accent: #1d6860;
+        --accent-dark: #15534d;
+        --red: #c84238;
+        --red-dark: #9e3029;
+        --blue: #2768a8;
+        --blue-dark: #1d4e80;
+        --gold: #8a5a10;
+        --good: #24623d;
+        --bad: #9a332b;
+        --shadow: rgba(26, 38, 54, 0.09);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      button {
+        align-items: center;
+        background: var(--accent);
+        border: 0;
+        border-radius: 6px;
+        color: #ffffff;
+        cursor: pointer;
+        display: inline-flex;
+        font-weight: 700;
+        justify-content: center;
+        min-height: 42px;
+        padding: 10px 14px;
+      }
+
+      button:hover {
+        background: var(--accent-dark);
+      }
+
+      button.secondary {
+        background: #e4e9ee;
+        color: var(--text);
+      }
+
+      button.secondary:hover {
+        background: #d9e1e8;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+
+      input[type="number"],
+      select {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        min-height: 42px;
+        padding: 9px 11px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        font-size: 2rem;
+        line-height: 1.15;
+        margin-bottom: 12px;
+      }
+
+      h2 {
+        font-size: 1.2rem;
+        line-height: 1.25;
+        margin-bottom: 10px;
+      }
+
+      h3 {
+        font-size: 1rem;
+        line-height: 1.25;
+        margin-bottom: 8px;
+      }
+
+      p {
+        line-height: 1.55;
+        margin-bottom: 12px;
+      }
+
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--border);
+        padding: 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .app {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        box-shadow: 0 16px 34px var(--shadow);
+        margin: 24px auto;
+        padding: 26px;
+        width: min(1120px, calc(100vw - 24px));
+      }
+
+      .stack {
+        display: grid;
+        gap: 16px;
+      }
+
+      .row {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .row.between {
+        justify-content: space-between;
+      }
+
+      .split {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.85fr);
+      }
+
+      .three {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .panel,
+      .metric,
+      .rule-option {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 15px;
+      }
+
+      .notice {
+        background: #e9f3f1;
+        border-color: #b9d5d0;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .small {
+        font-size: 0.92rem;
+      }
+
+      .pill {
+        background: #e7ecef;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        color: var(--muted);
+        display: inline-flex;
+        font-size: 0.9rem;
+        font-weight: 700;
+        padding: 5px 10px;
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 1.35rem;
+        line-height: 1.2;
+      }
+
+      .rule-grid {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+
+      .rule-option {
+        background: #ffffff;
+        color: var(--text);
+        align-content: start;
+        display: grid;
+        gap: 8px;
+        justify-items: start;
+        line-height: 1.28;
+        min-height: 128px;
+        text-align: left;
+      }
+
+      .rule-option.selected {
+        background: #e8f3f1;
+        border-color: var(--accent);
+        box-shadow: inset 0 0 0 1px var(--accent);
+      }
+
+      .rule-option strong {
+        display: block;
+      }
+
+      .rule-option span {
+        display: block;
+        font-size: 0.94rem;
+        font-weight: 600;
+      }
+
+      .progress {
+        background: #dfe6ed;
+        border-radius: 999px;
+        height: 10px;
+        overflow: hidden;
+      }
+
+      .progress > div {
+        background: var(--accent);
+        height: 100%;
+        transition: width 160ms ease;
+      }
+
+      .balls-stage {
+        align-items: center;
+        background: #e6ebef;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        display: grid;
+        justify-items: center;
+        min-height: 240px;
+        overflow: hidden;
+        padding: 12px;
+        position: relative;
+        width: 100%;
+      }
+
+      .balls-grid {
+        display: grid;
+        gap: 3px;
+        grid-template-columns: repeat(25, minmax(0, 1fr));
+        width: 100%;
+      }
+
+      .ball {
+        aspect-ratio: 1 / 1;
+        border-radius: 999px;
+        box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.16), inset 0 3px 4px rgba(255, 255, 255, 0.3);
+      }
+
+      .ball.red {
+        background: linear-gradient(145deg, #e5675c, var(--red-dark));
+      }
+
+      .ball.blue {
+        background: linear-gradient(145deg, #4d8bc5, var(--blue-dark));
+      }
+
+      .countdown {
+        font-size: 4rem;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .forecast-control {
+        align-items: center;
+        display: grid;
+        gap: 12px;
+        grid-template-columns: minmax(0, 1fr) 110px;
+      }
+
+      .calculator-control {
+        display: grid;
+        gap: 8px;
+      }
+
+      .calculator-control label {
+        color: var(--muted);
+        font-size: 0.92rem;
+        font-weight: 700;
+      }
+
+      .forecast-slider {
+        display: grid;
+        gap: 6px;
+      }
+
+      .range {
+        width: 100%;
+      }
+
+      .forecast-range {
+        --report-percent: 50%;
+        -webkit-appearance: none;
+        appearance: none;
+        background: linear-gradient(
+          to right,
+          var(--red) 0%,
+          var(--red) var(--report-percent),
+          var(--blue) var(--report-percent),
+          var(--blue) 100%
+        );
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        cursor: pointer;
+        height: 24px;
+      }
+
+      .forecast-range:focus-visible {
+        outline: 3px solid rgba(29, 104, 96, 0.28);
+        outline-offset: 3px;
+      }
+
+      .forecast-range::-webkit-slider-runnable-track {
+        background: transparent;
+        border-radius: 999px;
+        height: 24px;
+      }
+
+      .forecast-range::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        background: #ffffff;
+        border: 2px solid #202832;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
+        height: 34px;
+        margin-top: -6px;
+        width: 16px;
+      }
+
+      .forecast-range::-moz-range-track {
+        background: transparent;
+        border: 0;
+        height: 24px;
+      }
+
+      .forecast-range::-moz-range-progress {
+        background: transparent;
+      }
+
+      .forecast-range::-moz-range-thumb {
+        background: #ffffff;
+        border: 2px solid #202832;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
+        height: 30px;
+        width: 14px;
+      }
+
+      .chart {
+        display: block;
+        height: 220px;
+        width: 100%;
+      }
+
+      .axis {
+        stroke: #aeb8c4;
+        stroke-width: 1;
+      }
+
+      .axis-text {
+        fill: var(--muted);
+        font-size: 11px;
+      }
+
+      .line-uniform {
+        stroke: var(--blue);
+      }
+
+      .line-ri {
+        stroke: var(--accent);
+      }
+
+      .line-threshold {
+        stroke: var(--gold);
+        stroke-dasharray: 5 4;
+      }
+
+      .feedback-good {
+        color: var(--good);
+        font-weight: 700;
+      }
+
+      .feedback-bad {
+        color: var(--bad);
+        font-weight: 700;
+      }
+
+      .data-box {
+        background: #f1f4f7;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        max-height: 240px;
+        overflow: auto;
+        padding: 12px;
+        white-space: pre;
+      }
+
+      @media (max-width: 820px) {
+        .app {
+          margin: 8px auto;
+          padding: 16px;
+          width: calc(100vw - 16px);
+        }
+
+        .split,
+        .three,
+        .forecast-control,
+        .calculator-control {
+          grid-template-columns: 1fr;
+        }
+
+        .balls-stage {
+          width: 100%;
+        }
+
+        .balls-grid {
+          gap: 4px;
+          grid-template-columns: repeat(10, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main id="app" class="app" aria-live="polite"></main>
+
+    <script>
+      (function () {
+        "use strict";
+
+        const CONFIG = {
+          totalBalls: 200,
+          practiceRounds: 3,
+          paidRounds: 8,
+          gridN: 900,
+          targetExpectedScore: 50,
+          decisionThreshold: 0.35,
+          // RI treatment curvature is the binary-threshold-optimal curvature
+          //   G''*(p) = W( C(p)^2 ) / (p - p*)^2,
+          //   C(p)    = M * |p - p*|^3 / (p^2 - p + 1),
+          // derived under a uniform prior. M is fixed by the peak condition
+          // W = 2 so that curvature peaks at |p - p*| = riPeakOffset.
+          riPeakOffset: 0.05,
+          practiceFractions: [23, 47, 62],
+          // Between-subjects design: the same eight percentages for every
+          // subject; the arms differ only in the scoring rule. High-curvature
+          // rounds {30,31,39,41} sit on the RI curvature peak; far rounds
+          // {59,64,66,71} sit where curvature is low. The presentation order is
+          // shuffled per subject (see shuffle() below) so that serial-position
+          // effects do not confound the high-vs-far contrast.
+          paidSchedule: [41, 59, 71, 30, 64, 39, 31, 66],
+          maxForecastSeconds: 60,
+          schemaVersion: "ri-balls-v2",
+          prolificCompletionCode: "REPLACE_WITH_PROLIFIC_CODE",
+          prolificCompletionUrl: "https://app.prolific.com/submissions/complete?cc=REPLACE_WITH_PROLIFIC_CODE",
+          bonusUsdPerPoint: 0.02,
+        };
+
+        const RULES = {
+          ri: {
+            id: "ri",
+            label: "Precision matters near 35%",
+            short: "Small mistakes cost more points when your report is a little above or below 35% than when it is far from 35%.",
+            lineClass: "line-ri",
+          },
+          uniform: {
+            id: "uniform",
+            label: "Precision matters everywhere",
+            short: "Small mistakes cost roughly the same number of points wherever your report falls on the 0&ndash;100% scale.",
+            lineClass: "line-uniform",
+          },
+        };
+
+        // Comprehension check shown after the intro and before practice.
+        // Identical across arms (no rule-specific wording) so the gate does
+        // not introduce a between-subjects confound. Both items must be
+        // answered correctly to proceed; wrong answers send subjects back to
+        // re-read the instructions. Per-attempt responses are stored in
+        // state.comprehension and exported.
+        const COMPREHENSION_QUESTIONS = [
+          {
+            id: "report_target",
+            prompt: "The balls look about 70% red. To score the most points, you should report about:",
+            options: [
+              { value: "35", label: "35" },
+              { value: "50", label: "50" },
+              { value: "70", label: "70" },
+              { value: "100", label: "100" },
+            ],
+            correct: "70",
+          },
+          {
+            id: "point_decider",
+            prompt: "After you report, what decides your points?",
+            options: [
+              { value: "random_ball", label: "One ball picked at random from the balls you saw" },
+              { value: "exact_percent", label: "The exact percentage of red balls" },
+            ],
+            correct: "random_ball",
+          },
+        ];
+
+        const app = document.getElementById("app");
+        const participantIds = readParticipantIds();
+        // RI_SHAPE_M must be initialized before buildProperRules() since
+        // curvature() reads it. Function declarations like riShapeConstant
+        // are hoisted, but const initialisation is not.
+        const RI_SHAPE_M = riShapeConstant();
+        const properRules = buildProperRules();
+        const state = {
+          screen: "intro",
+          rule: null,
+          assignmentKey: null,
+          assignmentSequence: null,
+          assignmentOverridden: false,
+          assignmentReused: false,
+          ruleId: null,
+          phase: "practice",
+          practiceIndex: 0,
+          paidIndex: 0,
+          currentRound: null,
+          reportPercent: 50,
+          inspectionTicker: null,
+          forecastTimeout: null,
+          events: [],
+          practice: [],
+          paidRounds: [],
+          paidSchedule: [],
+          payingRoundIndex: null,
+          bonusPaymentUsd: null,
+          comprehension: { attempts: [], passed: false, completedAt: null },
+          submissionId: participantIds.sessionId || ("local-" + Date.now() + "-" + cryptoId()),
+          consentAccepted: false,
+          backendSave: {
+            status: "idle",
+            submissionId: null,
+            savedAt: null,
+            filename: null,
+            error: null,
+          },
+          startedAt: new Date().toISOString(),
+          finishedAt: null,
+        };
+        state.ruleId = state.rule;
+
+        function h(strings, ...values) {
+          let out = "";
+          for (let i = 0; i < strings.length; i += 1) {
+            out += strings[i];
+            if (i < values.length) out += values[i];
+          }
+          return out;
+        }
+
+        function render(html) {
+          app.innerHTML = html;
+          // [iframe edit C] Report content height so Qualtrics can size the frame.
+          try {
+            if (window.parent && window.parent !== window) {
+              var riHeight = Math.max(
+                document.body ? document.body.scrollHeight : 0,
+                document.documentElement ? document.documentElement.scrollHeight : 0
+              );
+              window.parent.postMessage({ type: "ri-balls-resize", height: riHeight }, "*");
+            }
+          } catch (e) {}
+        }
+
+        function readParticipantIds() {
+          const params = new URLSearchParams(window.location.search);
+          return {
+            prolificPid: params.get("PROLIFIC_PID") || "",
+            studyId: params.get("STUDY_ID") || "",
+            sessionId: params.get("SESSION_ID") || "",
+          };
+        }
+
+        // Static build: no server is available, so assignment is drawn
+        // client-side with Math.random() (unbiased coin flip; not a strict
+        // counter). URL params still override for smoke-testing both arms.
+        function ruleOverride() {
+          // [iframe edit A] Arm comes from the Qualtrics randomizer via the
+          // iframe URL ("arm"); fall back to the legacy "rule" param for local
+          // testing (e.g. ri-task.html?arm=ri).
+          const params = new URLSearchParams(window.location.search);
+          const requested = params.get("arm") || params.get("rule");
+          if (requested === "ri" || requested === "uniform") return requested;
+          return null;
+        }
+
+        function readLocalAssignmentKey() {
+          const storageKey = "ri_balls_assignment_key";
+          try {
+            let key = window.localStorage.getItem(storageKey);
+            if (!key) {
+              key = "local-" + cryptoId();
+              window.localStorage.setItem(storageKey, key);
+            }
+            return key;
+          } catch (error) {
+            return "local-" + cryptoId();
+          }
+        }
+
+        function assignmentKey() {
+          if (participantIds.sessionId) return "session-" + participantIds.sessionId;
+          if (participantIds.prolificPid) return "prolific-" + participantIds.prolificPid;
+          return readLocalAssignmentKey();
+        }
+
+        function missingProlificIds() {
+          const missing = [];
+          if (!participantIds.prolificPid) missing.push("PROLIFIC_PID");
+          if (!participantIds.studyId) missing.push("STUDY_ID");
+          if (!participantIds.sessionId) missing.push("SESSION_ID");
+          return missing;
+        }
+
+        function assignRule() {
+          const override = ruleOverride();
+          if (override) {
+            return {
+              rule: override,
+              assignmentKey: null,
+              sequence: null,
+              overridden: true,
+              reused: false,
+            };
+          }
+          return {
+            rule: Math.random() < 0.5 ? "ri" : "uniform",
+            assignmentKey: assignmentKey(),
+            sequence: null,
+            overridden: false,
+            reused: false,
+          };
+        }
+
+        function flatPaidRounds() {
+          return state.paidRounds.slice();
+        }
+
+        function clamp(x, lo, hi) {
+          return Math.max(lo, Math.min(hi, x));
+        }
+
+        function fmtPoints(x) {
+          return x.toFixed(1) + " pts";
+        }
+
+        function fmtProb(x) {
+          return Math.round(100 * x) + "%";
+        }
+
+        function fmtSeconds(ms) {
+          return Number.isFinite(ms) ? (ms / 1000).toFixed(2) + "s" : "";
+        }
+
+        function fmtMeanSeconds(values) {
+          return fmtSeconds(averageFinite(values));
+        }
+
+        function fmtPp(x) {
+          return (100 * x).toFixed(1) + " pp";
+        }
+
+        function normalizePercent(value, fallback) {
+          const parsed = Number(value);
+          if (!Number.isFinite(parsed)) return fallback;
+          return clamp(Math.round(parsed), 0, 100);
+        }
+
+        function cryptoId() {
+          if (window.crypto && window.crypto.getRandomValues) {
+            const arr = new Uint32Array(2);
+            window.crypto.getRandomValues(arr);
+            return Array.from(arr).map((x) => x.toString(16)).join("");
+          }
+          return String(Math.random()).slice(2);
+        }
+
+        function randomIntInclusive(min, max) {
+          return min + Math.floor(Math.random() * (max - min + 1));
+        }
+
+        function percentToRedCount(percent) {
+          return Math.round((percent / 100) * CONFIG.totalBalls);
+        }
+
+        function drawPercentFromBand(band) {
+          return randomIntInclusive(band.minPct, band.maxPct);
+        }
+
+        function scheduledRedPercent() {
+          if (state.phase === "practice") {
+            const seq = CONFIG.practiceFractions;
+            return seq[state.practiceIndex % seq.length];
+          }
+          const seq = state.paidSchedule.length ? state.paidSchedule : CONFIG.paidSchedule;
+          return seq[state.paidIndex % seq.length];
+        }
+
+        function shuffle(items, rng = Math.random) {
+          const out = items.slice();
+          for (let i = out.length - 1; i > 0; i -= 1) {
+            const j = Math.floor(rng() * (i + 1));
+            const tmp = out[i];
+            out[i] = out[j];
+            out[j] = tmp;
+          }
+          return out;
+        }
+
+        // Principal-branch Lambert W for z >= 0, via Halley iteration.
+        function lambertW0(z) {
+          if (z <= 0) return 0;
+          let w = z < 1.5 ? z / (1 + z) : Math.log(z) - Math.log(Math.log(z));
+          for (let i = 0; i < 24; i += 1) {
+            const ew = Math.exp(w);
+            const f = w * ew - z;
+            const wp1 = w + 1;
+            const dw = f / (ew * wp1 - ((w + 2) * f) / (2 * wp1));
+            w -= dw;
+            if (Math.abs(dw) <= 1e-15 * (1 + Math.abs(w))) break;
+          }
+          return w;
+        }
+
+        // M such that the RI curvature peaks at |p - p*| = riPeakOffset.
+        // RI_SHAPE_M itself is initialised earlier (just below the IIFE
+        // configuration block) so it is in scope before buildProperRules().
+        function riShapeConstant() {
+          const pPeak = CONFIG.decisionThreshold + CONFIG.riPeakOffset;
+          return Math.E * Math.SQRT2 * (pPeak * pPeak - pPeak + 1) /
+            Math.pow(CONFIG.riPeakOffset, 3);
+        }
+
+        function curvature(ruleId, p) {
+          if (ruleId === "uniform") return 1.0;
+          const d = Math.abs(p - CONFIG.decisionThreshold);
+          if (d < 1e-9) return 0.0;
+          const cArg = RI_SHAPE_M * Math.pow(d, 3) / (p * p - p + 1);
+          return lambertW0(cArg * cArg) / (d * d);
+        }
+
+        function buildProperRules() {
+          const result = {};
+          Object.keys(RULES).forEach((ruleId) => {
+            const n = CONFIG.gridN;
+            const dx = 1 / n;
+            const s1 = new Array(n + 1).fill(0);
+            const s0 = new Array(n + 1).fill(0);
+            const g = new Array(n + 1).fill(0);
+            for (let i = 0; i <= n; i += 1) {
+              g[i] = curvature(ruleId, i / n);
+            }
+            for (let i = 1; i <= n; i += 1) {
+              const p0 = (i - 1) / n;
+              const p1 = i / n;
+              s1[i] = s1[i - 1] + 0.5 * (((1 - p0) * g[i - 1]) + ((1 - p1) * g[i])) * dx;
+            }
+            for (let i = n - 1; i >= 0; i -= 1) {
+              const p0 = i / n;
+              const p1 = (i + 1) / n;
+              s0[i] = s0[i + 1] + 0.5 * ((p0 * g[i]) + (p1 * g[i + 1])) * dx;
+            }
+            // Schedule-mean (equal-budget) normalization: scale so the
+            // schedule-averaged truthful expected score equals the target,
+            // holding expected payment fixed across rules so the curvature
+            // shape (not the overall stakes) is what differs between treatments.
+            const paidKs = CONFIG.paidSchedule.slice();
+            let scheduleSum = 0;
+            paidKs.forEach((k) => {
+              const p = k / 100;
+              scheduleSum += p * interp(s1, p) + (1 - p) * interp(s0, p);
+            });
+            const scheduleMean = scheduleSum / paidKs.length;
+            result[ruleId] = {
+              s1,
+              s0,
+              g,
+              scale: CONFIG.targetExpectedScore / scheduleMean,
+            };
+          });
+          return result;
+        }
+
+        function interp(arr, x) {
+          const z = clamp(x, 0, 1) * CONFIG.gridN;
+          const i = Math.floor(z);
+          const frac = z - i;
+          if (i >= CONFIG.gridN) return arr[CONFIG.gridN];
+          return arr[i] * (1 - frac) + arr[i + 1] * frac;
+        }
+
+        function properScore(ruleId, report, outcome) {
+          const rule = properRules[ruleId];
+          const raw = outcome === 1 ? interp(rule.s1, report) : interp(rule.s0, report);
+          return rule.scale * raw;
+        }
+
+        function expectedScore(ruleId, belief, report) {
+          return belief * properScore(ruleId, report, 1) + (1 - belief) * properScore(ruleId, report, 0);
+        }
+
+        function drawRound() {
+          const redPercent = scheduledRedPercent();
+          const p = redPercent / 100;
+          const redCount = percentToRedCount(redPercent);
+          const colors = shuffle(
+            Array.from({ length: CONFIG.totalBalls }, (_, i) => i < redCount ? "red" : "blue")
+          );
+          return {
+            roundId: cryptoId(),
+            phase: state.phase,
+            p,
+            redPercent,
+            redCount,
+            blueCount: CONFIG.totalBalls - redCount,
+            colors,
+            outcome: null,
+            report: null,
+            reportRedCount: null,
+            score: null,
+            scoreRule: null,
+            inspectionStartedAt: null,
+            inspectionMs: null,
+            responseStartedAt: null,
+            responseMs: null,
+            maxForecastMs: CONFIG.maxForecastSeconds * 1000,
+            timedOut: false,
+          };
+        }
+
+        function startExperiment() {
+          state.startedAt = new Date().toISOString();
+          state.phase = "practice";
+          state.practiceIndex = 0;
+          state.paidIndex = 0;
+          state.ruleId = state.rule;
+          state.submissionId = participantIds.sessionId || ("local-" + Date.now() + "-" + cryptoId());
+          state.practice = [];
+          state.paidRounds = [];
+          state.paidSchedule = shuffle(CONFIG.paidSchedule);
+          state.events = [];
+          state.finishedAt = null;
+          state.payingRoundIndex = null;
+          state.bonusPaymentUsd = null;
+          state.backendSave = {
+            status: "idle",
+            submissionId: null,
+            savedAt: null,
+            filename: null,
+            error: null,
+          };
+          logEvent("paid_schedule_randomized", {
+            originalSchedule: CONFIG.paidSchedule,
+            paidSchedule: state.paidSchedule,
+          });
+          startRound();
+        }
+
+        function startRound() {
+          clearTimers();
+          state.currentRound = drawRound();
+          state.reportPercent = 50;
+          state.screen = "roundStarting";
+          logEvent("round_created", {
+            p: state.currentRound.p,
+            redCount: state.currentRound.redCount,
+            stimulusRandomization: "client_side_random_shuffle",
+            outcomeTiming: "drawn_after_report_submission",
+          });
+          // Practice and scored rounds both flow straight through the round block.
+          // Practice feedback is shown once, after all practice rounds are done.
+          revealStimulus();
+        }
+
+        function revealStimulus() {
+          state.screen = "stimulus";
+          state.currentRound.inspectionStartedAt = Date.now();
+          state.currentRound.responseStartedAt = state.currentRound.inspectionStartedAt;
+          logEvent("inspection_started", {});
+          renderStimulus();
+          state.inspectionTicker = window.setInterval(updateInspectionClock, 100);
+          state.forecastTimeout = window.setTimeout(timeoutForecast, CONFIG.maxForecastSeconds * 1000);
+        }
+
+        function clearTimers() {
+          if (state.inspectionTicker) window.clearInterval(state.inspectionTicker);
+          state.inspectionTicker = null;
+          if (state.forecastTimeout) window.clearTimeout(state.forecastTimeout);
+          state.forecastTimeout = null;
+        }
+
+        function updateInspectionClock() {
+          const round = state.currentRound;
+          if (!round || !round.inspectionStartedAt) return;
+          const elapsedMs = Date.now() - round.inspectionStartedAt;
+          const remainingMs = Math.max(0, (round.maxForecastMs || CONFIG.maxForecastSeconds * 1000) - elapsedMs);
+
+          const remaining = document.getElementById("time-remaining");
+          if (remaining) remaining.textContent = Math.ceil(remainingMs / 1000) + "s";
+
+          const warning = document.getElementById("time-warning");
+          if (warning) {
+            warning.textContent = remainingMs <= 10000
+              ? "Please submit soon. The current estimate will be submitted automatically when time runs out."
+              : "";
+          }
+        }
+
+        function timeoutForecast() {
+          const round = state.currentRound;
+          if (!round || state.screen !== "stimulus") return;
+          round.timedOut = true;
+          logEvent("forecast_timed_out", {
+            maxForecastMs: round.maxForecastMs,
+            reportPercent: state.reportPercent,
+          });
+          submitReport(true);
+        }
+
+        function submitReport(fromTimeout = false) {
+          const value = Number(state.reportPercent);
+          if (!Number.isFinite(value) || value < 0 || value > 100) {
+            const error = document.getElementById("report-error");
+            if (error) error.textContent = "Enter a whole-number estimate from 0 to 100.";
+            return;
+          }
+          const discreteValue = clamp(Math.round(value), 0, 100);
+          const round = state.currentRound;
+          const submittedAt = Date.now();
+          clearTimers();
+          state.reportPercent = discreteValue;
+          if (round.inspectionStartedAt && round.inspectionMs == null) {
+            round.inspectionMs = submittedAt - round.inspectionStartedAt;
+          }
+          if (!round.responseStartedAt) {
+            round.responseStartedAt = round.inspectionStartedAt || submittedAt;
+          }
+          round.timedOut = Boolean(round.timedOut || fromTimeout);
+          round.report = discreteValue / 100;
+          round.reportRedCount = percentToRedCount(discreteValue);
+          round.scoreRule = state.ruleId;
+          if (round.outcome == null) {
+            round.outcome = Math.random() < round.p ? 1 : 0;
+          }
+          round.score = properScore(round.scoreRule, round.report, round.outcome);
+          round.responseMs = submittedAt - round.responseStartedAt;
+          logEvent("report_submitted", {
+            report: round.report,
+            score: round.score,
+            scoreRule: round.scoreRule,
+            outcome: round.outcome,
+            inspectionMs: round.inspectionMs,
+            responseMs: round.responseMs,
+            timedOut: round.timedOut,
+            maxForecastMs: round.maxForecastMs,
+          });
+          // Rounds advance immediately. Practice feedback is grouped after the
+          // practice block; scored-round feedback is grouped on the finished screen.
+          nextRound();
+        }
+
+        function nextRound() {
+          const saved = state.currentRound;
+          if (state.phase === "practice") {
+            state.practice.push(saved);
+            state.practiceIndex += 1;
+            if (state.practiceIndex >= CONFIG.practiceRounds) {
+              state.screen = "practiceSummary";
+              renderPracticeSummary();
+            } else {
+              startRound();
+            }
+            return;
+          }
+          state.paidRounds.push(saved);
+          state.paidIndex += 1;
+          if (state.paidIndex >= CONFIG.paidRounds) {
+            finish();
+          } else {
+            startRound();
+          }
+        }
+
+        function startPaidRounds() {
+          state.phase = "paid";
+          state.screen = "paidIntro";
+          state.paidIndex = 0;
+          logEvent("paid_rounds_started", { practiceRounds: state.practice.length });
+          startRound();
+        }
+
+        function finish() {
+          state.finishedAt = new Date().toISOString();
+          state.screen = "finished";
+          const all = flatPaidRounds();
+          state.payingRoundIndex = all.length ? randomIntInclusive(0, all.length - 1) : null;
+          state.bonusPaymentUsd = finalBonusUsd();
+          logEvent("experiment_finished", {
+            totalScore: totalPaidScore(),
+            payingRoundIndex: state.payingRoundIndex,
+            bonusPaymentUsd: state.bonusPaymentUsd,
+            bonusUsdPerPoint: CONFIG.bonusUsdPerPoint,
+          });
+          renderFinished();
+          saveSubmission();
+        }
+
+        function totalPaidScore() {
+          return flatPaidRounds().reduce((sum, round) => sum + clamp(round.score || 0, 0, 100), 0);
+        }
+
+        function payingRound() {
+          const all = flatPaidRounds();
+          if (state.payingRoundIndex == null || !all.length) return null;
+          return all[state.payingRoundIndex];
+        }
+
+        function scoreToBonusUsd(score) {
+          return clamp(score || 0, 0, 100) * CONFIG.bonusUsdPerPoint;
+        }
+
+        function finalBonusUsd() {
+          const round = payingRound();
+          if (!round) return 0;
+          return scoreToBonusUsd(round.score);
+        }
+
+        function logEvent(type, payload) {
+          state.events.push({
+            type,
+            at: new Date().toISOString(),
+            ruleId: state.ruleId,
+            phase: state.phase,
+            practiceIndex: state.practiceIndex,
+            paidIndex: state.paidIndex,
+            payload,
+          });
+        }
+
+        function phaseTotal() {
+          if (state.phase === "practice") return CONFIG.practiceRounds;
+          return CONFIG.paidRounds;
+        }
+
+        function phaseIndex() {
+          if (state.phase === "practice") return state.practiceIndex;
+          return state.paidIndex;
+        }
+
+        function phaseLabel() {
+          if (state.phase === "practice") return "Practice";
+          return "Scored rounds";
+        }
+        function progressHtml() {
+          const total = phaseTotal();
+          const index = phaseIndex();
+          const pct = 100 * index / total;
+          return h`
+            <div class="stack" style="gap: 8px;">
+              <div class="row between">
+                <span class="pill">${phaseLabel()} round ${index + 1} of ${total}</span>
+                <span class="pill">${RULES[state.ruleId].label}</span>
+              </div>
+              <div class="progress" aria-hidden="true"><div style="width: ${pct.toFixed(1)}%;"></div></div>
+            </div>
+          `;
+        }
+
+        function renderConsent() {
+          const missing = missingProlificIds();
+          render(h`
+            <section class="stack">
+              <div>
+                <h1>Red-Blue Estimation Task</h1>
+                <p class="muted">
+                  Standalone preview mode. This version does not upload data or verify Prolific completion.
+                </p>
+              </div>
+              <div class="panel">
+                <h2>Not for Prolific Fielding</h2>
+                <p>
+                  Use the backend-served version for real Prolific sessions so assignment, saving,
+                  duplicate checks, and completion can be verified.
+                </p>
+                ${missing.length ? `<p class="small muted">Missing Prolific parameter(s): ${missing.map(escapeHtml).join(", ")}.</p>` : ""}
+              </div>
+              <div class="panel notice">
+                <h2>Consent Preview</h2>
+                <p>
+                  Your reports, response times, payment outcomes, browser user agent, and Prolific
+                  identifiers would be saved in the backend version.
+                </p>
+                <label class="row small" style="align-items: flex-start;">
+                  <input id="consent-check" type="checkbox" style="margin-top: 3px;">
+                  <span>I have read this information and agree to continue in preview mode.</span>
+                </label>
+              </div>
+              <button id="continue-consent" disabled>Continue</button>
+            </section>
+          `);
+          const checkbox = document.getElementById("consent-check");
+          const button = document.getElementById("continue-consent");
+          checkbox.addEventListener("change", () => {
+            button.disabled = !checkbox.checked;
+          });
+          button.addEventListener("click", () => {
+            state.consentAccepted = true;
+            state.screen = "intro";
+            logEvent("consent_accepted_static", { missingProlificIds: missing });
+            renderIntro();
+          });
+        }
+
+        function renderIntro() {
+          const rule = RULES[state.ruleId];
+          render(h`
+            <section class="stack">
+              <div>
+                <h1>Red-Blue Estimation Task</h1>
+                <p class="muted">
+                  This task is made up of a short series of rounds. Each round shows
+                  you 200 red and blue balls, and your job is to estimate the
+                  percentage of red balls. You have up to a minute per round to
+                  inspect the balls and give your estimate.
+                </p>
+              </div>
+
+              <div class="panel notice">
+                <h2>How Your Bonus Is Calculated</h2>
+                <p class="small">
+                  Your bonus comes from one of the scored rounds, which is chosen at
+                  random at the end of the task. Here is how each round's score is
+                  determined:
+                </p>
+                <ol class="small">
+                  <li><strong>After you have given your answer, we pick one of the balls at random.</strong></li>
+                  <li><strong>That ball decides the round's points.</strong> If it's red, you get more points if you reported a higher percentage of red balls; if it's blue, you get more points if you reported a lower percentage of red balls.</li>
+                  <li><strong>The estimate that maximizes the expected payment is the true percentage of red balls.</strong></li>
+                  <li><strong>Each point is worth 2 cents.</strong> A score of 80 pays $1.60; a score of 20 pays $0.40.</li>
+                </ol>
+                <p class="small">
+                  The best way to raise your expected bonus is to report your honest
+                  best estimate of the percentage of red balls.
+                </p>
+              </div>
+
+              <div class="panel notice">
+                <h2>Your Payment Rule: ${rule.label}</h2>
+                <p>${rule.short}</p>
+                ${state.ruleId === "ri" ? h`
+                  <p class="small">
+                    <strong>What this means while you inspect.</strong>
+                    More careful inspection matters most when the display looks close to 35% red.
+                    If it looks clearly far from 35%, a quick honest estimate is usually enough.
+                    In every round, report your honest best guess.
+                  </p>
+                  <p class="small">
+                    <strong>What this does <em>not</em> mean.</strong>
+                    It does not mean you should always report 35%. Your points still
+                    depend on how close your report is to what actually shows up in the
+                    balls &mdash; reporting 35% when the true share is, say, 80% leads
+                    to an expected loss in points.
+                  </p>
+                ` : ""}
+              </div>
+
+              <div class="three">
+                <div class="metric">
+                  <span class="muted">Inspection</span>
+                  <strong>up to 1 min/round</strong>
+                </div>
+                <div class="metric">
+                  <span class="muted">Scored rounds</span>
+                  <strong>${CONFIG.paidRounds} rounds</strong>
+                </div>
+              </div>
+
+              <div class="row">
+                <button id="start">Start practice rounds</button>
+              </div>
+            </section>
+          `);
+          document.getElementById("start").addEventListener("click", renderComprehension);
+        }
+
+        function renderComprehension() {
+          state.screen = "comprehension";
+          const questionsHtml = COMPREHENSION_QUESTIONS.map((q, qi) => {
+            const opts = q.options.map((opt) => h`
+              <label class="row small" style="align-items: flex-start; gap: 8px; cursor: pointer;">
+                <input type="radio" name="comp-${q.id}" value="${opt.value}">
+                <span>${opt.label}</span>
+              </label>
+            `).join("");
+            return h`
+              <div class="panel notice">
+                <p><strong>${qi + 1}. ${q.prompt}</strong></p>
+                <div class="stack" style="gap: 6px; margin-top: 8px;">${opts}</div>
+              </div>
+            `;
+          }).join("");
+          render(h`
+            <section class="stack">
+              <div>
+                <h1>Quick Check</h1>
+                <p class="muted">
+                  Two short questions to confirm the task is clear. You must answer
+                  both correctly before the ${CONFIG.practiceRounds} practice rounds begin.
+                  If not, review the instructions and try again.
+                </p>
+              </div>
+              ${questionsHtml}
+              <p id="comp-feedback" class="feedback-bad small" style="min-height: 18px;"></p>
+              <div class="row">
+                <button id="comp-submit">Start practice rounds</button>
+                <button id="comp-review" class="secondary">Review instructions</button>
+              </div>
+            </section>
+          `);
+          document.getElementById("comp-submit").addEventListener("click", submitComprehension);
+          document.getElementById("comp-review").addEventListener("click", renderIntro);
+        }
+
+        function submitComprehension() {
+          const responses = {};
+          let allAnswered = true;
+          let allCorrect = true;
+          COMPREHENSION_QUESTIONS.forEach((q) => {
+            const checked = document.querySelector(`input[name="comp-${q.id}"]:checked`);
+            const value = checked ? checked.value : null;
+            responses[q.id] = value;
+            if (value === null) allAnswered = false;
+            if (value !== q.correct) allCorrect = false;
+          });
+          state.comprehension.attempts.push({
+            at: new Date().toISOString(),
+            attempt: state.comprehension.attempts.length + 1,
+            responses,
+            allAnswered,
+            allCorrect,
+          });
+          const feedback = document.getElementById("comp-feedback");
+          if (!allAnswered) {
+            if (feedback) feedback.textContent = "Please answer both questions before continuing.";
+            return;
+          }
+          if (!allCorrect) {
+            // Do not reveal which item is wrong; send them back to the text.
+            if (feedback) feedback.textContent = "One or more answers are not correct. Please re-read the instructions and try again.";
+            return;
+          }
+          state.comprehension.passed = true;
+          state.comprehension.completedAt = new Date().toISOString();
+          startExperiment();
+        }
+
+        function renderStimulus() {
+          const round = state.currentRound;
+          const report = Number(state.reportPercent);
+          render(h`
+            <section class="stack">
+              ${progressHtml()}
+              <div class="stack">
+                <div class="balls-stage">
+                  <div class="balls-grid" aria-hidden="true">
+                    ${round.colors.map((color) => `<span class="ball ${color}"></span>`).join("")}
+                  </div>
+                </div>
+                <div class="panel stack">
+                  <div>
+                    <h2>${state.phase === "practice" ? "Practice Estimate" : "Scored Estimate"}</h2>
+                    <p class="small muted">Time remaining: <strong id="time-remaining">${CONFIG.maxForecastSeconds}s</strong></p>
+                    <p id="time-warning" class="feedback-bad small"></p>
+                    <p class="small muted">Enter a whole-number percentage. With 200 balls, each percentage point is two balls.</p>
+                  </div>
+                  <div class="forecast-control">
+                    <div class="forecast-slider">
+                      <input class="range forecast-range" id="report-range" type="range" min="0" max="100" step="1" value="${report}" style="--report-percent: ${report}%;" aria-label="Estimated percentage red">
+                    </div>
+                    <input id="report-number" type="number" min="0" max="100" step="1" inputmode="numeric" value="${report}">
+                  </div>
+                  <div>
+                    <h3>Payment Reminder</h3>
+                    ${state.ruleId === "ri" ? h`
+                      <p class="small"><strong>Reminder:</strong> precision is especially important near 35%.</p>
+                    ` : ""}
+                    <p>${RULES[state.ruleId].short}</p>
+                    ${state.phase === "paid" ? h`
+                      <p class="muted small">
+                        If this round is selected at the end, its score determines your bonus.
+                        Your honest best guess maximizes your expected bonus.
+                      </p>
+                    ` : h`
+                      <p class="muted small">
+                        This is a practice round. Your honest best guess still gives the best expected score.
+                      </p>
+                    `}
+	                  </div>
+                  <p id="report-error" class="feedback-bad small"></p>
+                  <button id="submit">${state.phase === "practice" ? "Submit practice estimate" : "Submit scored estimate"}</button>
+                </div>
+              </div>
+            </section>
+          `);
+          const range = document.getElementById("report-range");
+          const number = document.getElementById("report-number");
+          const sync = (value) => {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) {
+              state.reportPercent = value;
+              return;
+            }
+            const clipped = clamp(Math.round(parsed), 0, 100);
+            state.reportPercent = clipped;
+            range.value = clipped;
+            range.style.setProperty("--report-percent", clipped + "%");
+            number.value = clipped;
+          };
+          range.addEventListener("input", () => sync(range.value));
+          number.addEventListener("input", () => sync(number.value));
+          document.getElementById("submit").addEventListener("click", () => submitReport(false));
+        }
+
+        function renderPracticeSummary() {
+          const rows = state.practice;
+          const meanAbsError = averageFinite(rows.map((round) => Math.abs(round.report - round.p)));
+          const meanInspectionMs = averageFinite(rows.map((round) => round.inspectionMs));
+          const rowsHtml = rows.map((round, i) => {
+            const error = round.report - round.p;
+            const otherOutcomeLabel = round.outcome === 1 ? "Blue" : "Red";
+            const otherOutcomeScore = properScore(round.scoreRule, round.report, round.outcome === 1 ? 0 : 1);
+            return h`
+              <tr>
+                <td>${i + 1}</td>
+                <td>${fmtProb(round.p)}</td>
+                <td>${fmtProb(round.report)}</td>
+                <td>${fmtPp(error)}</td>
+                <td>${round.outcome === 1 ? "Red" : "Blue"}</td>
+                <td>${fmtPoints(round.score)}</td>
+                <td>${otherOutcomeScore.toFixed(1)} points if ${otherOutcomeLabel.toLowerCase()}</td>
+                <td>${fmtSeconds(round.inspectionMs)}</td>
+              </tr>
+            `;
+          }).join("");
+          render(h`
+            <section class="stack">
+              <h1>Practice Complete</h1>
+              <div class="three">
+                <div class="metric">
+                  <span class="muted">Practice rounds</span>
+                  <strong>${rows.length}</strong>
+                </div>
+                <div class="metric">
+                  <span class="muted">Mean error</span>
+                  <strong>${fmtPp(meanAbsError)}</strong>
+                </div>
+                <div class="metric">
+                  <span class="muted">Mean time</span>
+                  <strong>${fmtSeconds(meanInspectionMs)}</strong>
+                </div>
+              </div>
+              <div class="panel notice">
+                <h2>Scored Rounds</h2>
+                <p>
+                  Practice is complete. The session has ${CONFIG.paidRounds} scored rounds,
+                  all using the same payment rule.
+                </p>
+                <p>
+                  <strong>How payment works.</strong> Each scored round gives a score. Better
+                  estimates get higher scores on average. Think of the score as a possible
+                  bonus: 75 points pays $1.50 if that round is selected.
+                </p>
+                <p>
+                  At the end, one of the ${CONFIG.paidRounds} scored rounds is picked at random.
+                  That selected round determines your final bonus.
+                </p>
+                <p>
+                  Your best strategy is to report the red percentage you honestly think is
+                  most likely.
+                </p>
+              </div>
+              <div class="panel">
+                <h2>Practice Results</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Round</th>
+                      <th>True red share</th>
+                      <th>Your report</th>
+                      <th>Error</th>
+                      <th>Outcome</th>
+                      <th>Score</th>
+                      <th>Other outcome score</th>
+                      <th>Time spent</th>
+                    </tr>
+                  </thead>
+                  <tbody>${rowsHtml}</tbody>
+                </table>
+              </div>
+              <div class="panel">
+                <h2>Your Payment Rule: ${RULES[state.ruleId].label}</h2>
+                <p>${RULES[state.ruleId].short}</p>
+              </div>
+              <button id="continue">Start scored rounds</button>
+            </section>
+          `);
+          document.getElementById("continue").addEventListener("click", startPaidRounds);
+        }
+
+        function saveStatusHtml() {
+          return h`
+            <div class="panel notice">
+              <h2>Export Your Data</h2>
+              <p>
+                This is the standalone version of the study; nothing is uploaded.
+                Use the JSON or CSV buttons to download your submission.
+              </p>
+              <p class="small muted">
+                Submission id: <strong>${escapeHtml(state.submissionId)}</strong>.
+              </p>
+            </div>
+          `;
+        }
+
+        function renderFinished() {
+          const allPaid = flatPaidRounds();
+          const rows = allPaid;
+          const meanAbsError = averageFinite(allPaid.map((round) => Math.abs(round.report - round.p)));
+          const meanInspectionMs = averageFinite(allPaid.map((round) => round.inspectionMs));
+          const totalScore = totalPaidScore();
+          const bonusPaymentUsd = state.bonusPaymentUsd == null ? finalBonusUsd() : state.bonusPaymentUsd;
+          const drawnIndex = state.payingRoundIndex;
+          const drawnRoundNumber = drawnIndex == null ? null : drawnIndex + 1;
+          const drawnRound = payingRound();
+          const ruleLabel = RULES[state.ruleId].label;
+          const thresholdRounds = allPaid.filter(isThresholdRegionRound);
+          const farRounds = allPaid.filter((round) => !isThresholdRegionRound(round));
+          const thresholdStats = roundGroupStats(thresholdRounds);
+          const farStats = roundGroupStats(farRounds);
+          const timeoutCount = allPaid.filter((round) => round.timedOut).length;
+          const snapshotText = finalSnapshotText(allPaid, drawnRoundNumber, bonusPaymentUsd, ruleLabel);
+          const roundRowsHtml = allPaid.map((round, i) => {
+            const isDrawn = i === drawnIndex;
+            const error = round.report - round.p;
+            const roundBonusUsd = scoreToBonusUsd(round.score);
+            return h`
+              <tr${isDrawn ? ' style="background: #e8f3f1;"' : ""}>
+                <td>${i + 1}${isDrawn ? " <strong>(selected)</strong>" : ""}</td>
+                <td>${fmtProb(round.p)}</td>
+                <td>${fmtProb(round.report)}</td>
+                <td>${(100 * error).toFixed(1)} pp</td>
+                <td>${round.outcome === 1 ? "Red" : "Blue"}</td>
+                <td>${fmtPoints(round.score)}</td>
+                <td>${fmtSeconds(round.inspectionMs)}</td>
+                <td>$${roundBonusUsd.toFixed(2)}</td>
+              </tr>
+            `;
+          }).join("");
+          render(h`
+            <section class="stack">
+              <h1>Demo Complete</h1>
+              <div class="three">
+                <div class="metric">
+                  <span class="muted">Scored rounds</span>
+                  <strong>${allPaid.length}</strong>
+                </div>
+                <div class="metric">
+                  <span class="muted">Average score</span>
+                  <strong>${fmtPoints(allPaid.length ? totalScore / allPaid.length : 0)}</strong>
+                </div>
+                <div class="metric">
+                  <span class="muted">Bonus</span>
+                  <strong>$${bonusPaymentUsd.toFixed(2)}</strong>
+                </div>
+              </div>
+              ${drawnRound ? h`
+                <p class="small muted">
+	                  Drawn round: round ${drawnRoundNumber}
+	                  (${ruleLabel}) &mdash; score
+	                  ${fmtPoints(drawnRound.score)}, paying a $${bonusPaymentUsd.toFixed(2)} bonus.
+	                </p>
+              ` : ""}
+              <div class="panel notice">
+                <h2>Bonus Payment</h2>
+                <p>
+                  Selected-round score: ${drawnRound ? fmtPoints(drawnRound.score) : "Pending"}.
+                  Bonus payment: $${bonusPaymentUsd.toFixed(2)} at $${CONFIG.bonusUsdPerPoint.toFixed(2)} per selected-round point.
+                </p>
+              </div>
+              <div class="panel">
+                <h2>Summary</h2>
+                <p class="small muted">
+                  Payment rule: ${ruleLabel}.
+                </p>
+              </div>
+              <div class="panel notice">
+                <h2>Stress-Test Snapshot</h2>
+                <p class="small muted">
+                  Screenshot this panel or copy it when sharing a test run.
+                </p>
+                <pre id="stress-snapshot" class="data-box">${escapeHtml(snapshotText)}</pre>
+                <div class="row">
+                  <button class="secondary" id="copy-snapshot">Copy snapshot</button>
+                  <span id="copy-snapshot-status" class="small muted"></span>
+                </div>
+              </div>
+              <div class="panel">
+                <h2>Your Scored Rounds</h2>
+                <p class="small muted">
+                  A full breakdown of every scored round. The true red share is now revealed for each.
+                  The highlighted row is the round selected at random to determine your bonus.
+                </p>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Round</th>
+                      <th>True red share</th>
+                      <th>Your report</th>
+                      <th>Error</th>
+                      <th>Outcome</th>
+                      <th>Score</th>
+                      <th>Time spent</th>
+                      <th>Bonus if selected</th>
+                    </tr>
+                  </thead>
+                  <tbody>${roundRowsHtml}</tbody>
+                </table>
+              </div>
+              <div class="split">
+                <div class="panel">
+                  <h2>Pooled Mechanism Diagnostics</h2>
+                  <table>
+                    <tbody>
+                      <tr><th>Mean absolute report error</th><td>${(100 * meanAbsError).toFixed(1)} percentage points</td></tr>
+                      <tr><th>Mean inspection time</th><td>${fmtSeconds(meanInspectionMs)}</td></tr>
+                      <tr><th>Threshold-region rounds</th><td>${thresholdStats.n} of ${allPaid.length}; mean time ${fmtMeanSeconds(thresholdRounds.map((round) => round.inspectionMs))}; mean error ${fmtPp(thresholdStats.meanAbsError)}</td></tr>
+                      <tr><th>Far rounds</th><td>${farStats.n} of ${allPaid.length}; mean time ${fmtMeanSeconds(farRounds.map((round) => round.inspectionMs))}; mean error ${fmtPp(farStats.meanAbsError)}</td></tr>
+                      <tr><th>Timeouts</th><td>${timeoutCount} of ${allPaid.length}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                ${saveStatusHtml()}
+              </div>
+              <div class="split">
+                <div class="panel">
+                  <h2>Export</h2>
+                  <p class="muted">Download your submission &mdash; the standalone version does not upload anything.</p>
+                  <div class="row">
+                    <button id="download-json">JSON</button>
+                    <button class="secondary" id="download-csv">CSV</button>
+                    <button class="secondary" id="restart">Restart</button>
+                  </div>
+                </div>
+              </div>
+              <pre class="data-box">${escapeHtml(JSON.stringify(rows, null, 2))}</pre>
+            </section>
+          `);
+          document.getElementById("download-json").addEventListener("click", downloadJson);
+          document.getElementById("download-csv").addEventListener("click", downloadCsv);
+          document.getElementById("copy-snapshot").addEventListener("click", copyStressSnapshot);
+          document.getElementById("restart").addEventListener("click", () => {
+            state.screen = "intro";
+            renderIntro();
+          });
+        }
+
+        function average(values) {
+          if (!values.length) return 0;
+          return values.reduce((sum, value) => sum + value, 0) / values.length;
+        }
+
+        function averageFinite(values) {
+          return average(values.filter((value) => Number.isFinite(value)));
+        }
+
+        function isThresholdRegionRound(round) {
+          return Math.abs(round.p - CONFIG.decisionThreshold) <= 0.1;
+        }
+
+        function roundGroupStats(rounds) {
+          return {
+            n: rounds.length,
+            meanAbsError: averageFinite(rounds.map((round) => Math.abs(round.report - round.p))),
+            meanInspectionMs: averageFinite(rounds.map((round) => round.inspectionMs)),
+          };
+        }
+
+        function finalSnapshotText(allPaid, drawnRoundNumber, bonusPaymentUsd, ruleLabel) {
+          const thresholdRounds = allPaid.filter(isThresholdRegionRound);
+          const farRounds = allPaid.filter((round) => !isThresholdRegionRound(round));
+          const thresholdStats = roundGroupStats(thresholdRounds);
+          const farStats = roundGroupStats(farRounds);
+          const meanAbsError = averageFinite(allPaid.map((round) => Math.abs(round.report - round.p)));
+          const meanInspectionMs = averageFinite(allPaid.map((round) => round.inspectionMs));
+          const timeoutCount = allPaid.filter((round) => round.timedOut).length;
+          const lines = [
+            "RI balls demo snapshot",
+            "submission: " + state.submissionId,
+            "finished: " + (state.finishedAt || ""),
+            "rule: " + state.ruleId + " (" + ruleLabel + ")",
+            "paid_schedule: " + state.paidSchedule.join(","),
+            "selected_round: " + (drawnRoundNumber || "none") + "; bonus: $" + bonusPaymentUsd.toFixed(2),
+            "overall: mean_abs_error=" + fmtPp(meanAbsError) + "; mean_time=" + fmtSeconds(meanInspectionMs) + "; timeouts=" + timeoutCount + "/" + allPaid.length,
+            "near_35: n=" + thresholdStats.n + "; mean_abs_error=" + fmtPp(thresholdStats.meanAbsError) + "; mean_time=" + fmtSeconds(thresholdStats.meanInspectionMs),
+            "far: n=" + farStats.n + "; mean_abs_error=" + fmtPp(farStats.meanAbsError) + "; mean_time=" + fmtSeconds(farStats.meanInspectionMs),
+            "rounds:",
+          ];
+          allPaid.forEach((round, i) => {
+            const selected = i + 1 === drawnRoundNumber ? " selected" : "";
+            const region = isThresholdRegionRound(round) ? "near35" : "far";
+            const outcome = round.outcome === 1 ? "red" : "blue";
+            lines.push(
+              "  r" + (i + 1) + selected +
+              " [" + region + "] true=" + fmtProb(round.p) +
+              " report=" + fmtProb(round.report) +
+              " error=" + fmtPp(round.report - round.p) +
+              " outcome=" + outcome +
+              " score=" + fmtPoints(round.score) +
+              " time=" + fmtSeconds(round.inspectionMs) +
+              (round.timedOut ? " timed_out" : "")
+            );
+          });
+          return lines.join("\n");
+        }
+
+        // Static build: no backend. Mark the submission as "skipped" so the
+        // finished screen shows the export buttons as the primary save path.
+        function saveSubmission() {
+          // [iframe edit B] Post compact results to the Qualtrics parent frame.
+          // Rounds are encoded as "K,reportPct,outcome,score,inspMs,timeout"
+          // joined by ";" -- a few hundred chars, under the 1,000-char cap.
+          state.backendSave = {
+            status: "posted",
+            submissionId: state.submissionId,
+            savedAt: new Date().toISOString(),
+            filename: null,
+            error: null,
+          };
+          try {
+            const enc = function (rounds) {
+              return (rounds || []).map(function (r) {
+                return [
+                  Math.round((r.p || 0) * 100),
+                  Math.round((r.report || 0) * 100),
+                  (r.outcome == null ? "" : r.outcome),
+                  (Math.round((r.score || 0) * 100) / 100),
+                  Math.round(r.inspectionMs || 0),
+                  (r.timedOut ? 1 : 0)
+                ].join(",");
+              }).join(";");
+            };
+            const responseId =
+              new URLSearchParams(window.location.search).get("responseId") || "";
+            const fields = {
+              ri_rounds: enc(state.paidRounds),
+              ri_practice: enc(state.practice),
+              ri_rule: state.rule || "",
+              ri_total_score: String(totalPaidScore()),
+              ri_paying_round_index:
+                state.payingRoundIndex == null ? "" : String(state.payingRoundIndex),
+              ri_bonus_usd:
+                state.bonusPaymentUsd == null ? "" : String(state.bonusPaymentUsd),
+              ri_submission_id: state.submissionId || "",
+              ri_response_id: responseId,
+              ri_schema: CONFIG.schemaVersion
+            };
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage({ type: "ri-balls-result", fields: fields }, "*");
+            }
+            state.backendSave.status = "posted";
+          } catch (error) {
+            state.backendSave.status = "post_error";
+            state.backendSave.error = String(error);
+          }
+          if (state.screen === "finished") renderFinished();
+        }
+
+        function exportPayload() {
+          return {
+            meta: {
+              source: "ri_balls_experiment_demo_static.html",
+              schemaVersion: CONFIG.schemaVersion,
+              submissionId: state.submissionId,
+              prolificPid: participantIds.prolificPid,
+              studyId: participantIds.studyId,
+              sessionId: participantIds.sessionId,
+              consentAccepted: state.consentAccepted,
+              missingProlificIds: missingProlificIds(),
+              startedAt: state.startedAt,
+              finishedAt: state.finishedAt,
+              rule: state.rule,
+              assignmentKey: state.assignmentKey,
+              assignmentSequence: state.assignmentSequence,
+              assignmentOverridden: state.assignmentOverridden,
+              assignmentReused: state.assignmentReused,
+              paidInspectionTiming: "self-paced",
+              stimulusRandomization: "client_side_random_shuffle_each_round",
+              outcomeTiming: "drawn_after_report_submission",
+              paymentScheme: "random_round_direct_score_bonus",
+              paidScheduleRandomization: "client_side_simple_shuffle",
+              configuredPaidSchedule: CONFIG.paidSchedule,
+              realizedPaidSchedule: state.paidSchedule,
+              targetScheduleMeanExpectedScore: CONFIG.targetExpectedScore,
+              totalScore: totalPaidScore(),
+              payingRoundIndex: state.payingRoundIndex,
+              bonusPaymentUsd: state.bonusPaymentUsd,
+              bonusUsdPerPoint: CONFIG.bonusUsdPerPoint,
+              completionCode: CONFIG.prolificCompletionCode,
+              completionUrl: CONFIG.prolificCompletionUrl,
+              totalBalls: CONFIG.totalBalls,
+              decisionThreshold: CONFIG.decisionThreshold,
+              paidRounds: CONFIG.paidRounds,
+              userAgent: window.navigator.userAgent,
+            },
+            comprehension: state.comprehension,
+            practice: state.practice,
+            paidRounds: state.paidRounds,
+            events: state.events,
+          };
+        }
+
+        function downloadJson() {
+          downloadBlob(
+            "ri-balls-demo.json",
+            "application/json",
+            JSON.stringify(exportPayload(), null, 2)
+          );
+        }
+
+        function downloadCsv() {
+          const rows = [
+            ["phase", "round", "rule", "score_rule", "schedule_order", "p", "red_percent", "red_count", "blue_count", "report", "report_red_count", "outcome", "score", "bonus_usd_if_selected", "inspection_ms", "response_ms", "timed_out", "max_forecast_ms"],
+          ];
+          const sources = [
+            ["practice", state.rule, state.practice],
+            ["paid", state.rule, state.paidRounds],
+          ];
+          sources.forEach(([phase, rule, rounds]) => {
+            rounds.forEach((round, i) => {
+              const bonusUsdIfSelected = phase === "paid" ? scoreToBonusUsd(round.score) : 0;
+              rows.push([
+                phase,
+                i + 1,
+                rule,
+                round.scoreRule,
+                phase === "paid" ? state.paidSchedule.join(" ") : CONFIG.practiceFractions.join(" "),
+                round.p,
+                round.redPercent,
+                round.redCount,
+                round.blueCount,
+                round.report,
+                round.reportRedCount,
+                round.outcome,
+                round.score,
+                bonusUsdIfSelected,
+                round.inspectionMs,
+                round.responseMs,
+                round.timedOut,
+                round.maxForecastMs,
+              ]);
+            });
+          });
+          const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
+          downloadBlob("ri-balls-demo.csv", "text/csv", csv);
+        }
+
+        function csvCell(value) {
+          const s = value === null || value === undefined ? "" : String(value);
+          if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+          return s;
+        }
+
+        function downloadBlob(filename, type, text) {
+          const blob = new Blob([text], { type });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.setTimeout(() => URL.revokeObjectURL(url), 0);
+        }
+
+        function copyStressSnapshot() {
+          const snapshot = document.getElementById("stress-snapshot");
+          const status = document.getElementById("copy-snapshot-status");
+          const text = snapshot ? snapshot.textContent : "";
+          if (!text) return;
+          if (!window.navigator.clipboard || !window.navigator.clipboard.writeText) {
+            if (status) status.textContent = "Select the text above to copy it.";
+            return;
+          }
+          window.navigator.clipboard.writeText(text).then(() => {
+            if (status) status.textContent = "Copied.";
+          }).catch(() => {
+            if (status) status.textContent = "Select the text above to copy it.";
+          });
+        }
+
+        function escapeHtml(text) {
+          return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        }
+
+        (function bootStatic() {
+          const assignment = assignRule();
+          state.rule = assignment.rule;
+          state.ruleId = state.rule;
+          state.assignmentKey = assignment.assignmentKey;
+          state.assignmentSequence = assignment.sequence;
+          state.assignmentOverridden = assignment.overridden;
+          state.assignmentReused = assignment.reused;
+          renderConsent();
+        }());
+      }());
+    </script>
+  </body>
+</html>
