@@ -486,6 +486,7 @@
           // effects do not confound the high-vs-far contrast.
           paidSchedule: [41, 59, 71, 30, 64, 39, 31, 66],
           maxForecastSeconds: 60,
+          maxComprehensionAttempts: 2,
           schemaVersion: "ri-balls-v3",
           bonusUsdPerPoint: 0.02,
         };
@@ -508,9 +509,10 @@
         // Comprehension check shown after the intro and before practice.
         // Identical across arms (no rule-specific wording) so the gate does
         // not introduce a between-subjects confound. Both items must be
-        // answered correctly to proceed; wrong answers send subjects back to
-        // re-read the instructions. Per-attempt responses are stored in
-        // state.comprehension and exported.
+        // answered correctly to proceed. Participants get two answered attempts;
+        // after two incorrect attempts, Prolific guidance is to stop the study
+        // and ask them to return it without completing. Per-attempt responses
+        // are stored in state.comprehension and exported.
         const COMPREHENSION_QUESTIONS = [
           {
             id: "report_target",
@@ -564,7 +566,6 @@
           bonusPaymentUsd: null,
           comprehension: { attempts: [], passed: false, completedAt: null },
           submissionId: participantIds.sessionId || ("local-" + Date.now() + "-" + cryptoId()),
-          consentAccepted: false,
           backendSave: {
             status: "idle",
             submissionId: null,
@@ -1100,40 +1101,6 @@
           `;
         }
 
-        function renderConsent() {
-          const missing = missingProlificIds();
-          render(h`
-            <section class="stack">
-              <div>
-                <h1>Red-Blue Estimation Task</h1>
-              </div>
-              <div class="panel notice">
-                <h2>Consent</h2>
-                <p>
-                  Your estimates, response times, and payment outcomes are recorded for
-                  research, together with your Prolific ID. Participation is voluntary.
-                </p>
-                <label class="row small" style="align-items: flex-start;">
-                  <input id="consent-check" type="checkbox" style="margin-top: 3px;">
-                  <span>I have read this information and agree to continue.</span>
-                </label>
-              </div>
-              <button id="continue-consent" disabled>Continue</button>
-            </section>
-          `);
-          const checkbox = document.getElementById("consent-check");
-          const button = document.getElementById("continue-consent");
-          checkbox.addEventListener("change", () => {
-            button.disabled = !checkbox.checked;
-          });
-          button.addEventListener("click", () => {
-            state.consentAccepted = true;
-            state.screen = "intro";
-            logEvent("consent_accepted_static", { missingProlificIds: missing });
-            renderIntro();
-          });
-        }
-
         function renderIntro() {
           const rule = RULES[state.ruleId];
           render(h`
@@ -1208,6 +1175,10 @@
 
         function renderComprehension() {
           state.screen = "comprehension";
+          const attemptNumber = Math.min(
+            state.comprehension.attempts.length + 1,
+            CONFIG.maxComprehensionAttempts
+          );
           const questionsHtml = COMPREHENSION_QUESTIONS.map((q, qi) => {
             const opts = q.options.map((opt) => h`
               <label class="row small" style="align-items: flex-start; gap: 8px; cursor: pointer;">
@@ -1229,7 +1200,8 @@
                 <p class="muted">
                   Two short questions to confirm the task is clear. You must answer
                   both correctly before the ${CONFIG.practiceRounds} practice rounds begin.
-                  If not, review the instructions and try again.
+                  You have two tries; this is try ${attemptNumber} of ${CONFIG.maxComprehensionAttempts}.
+                  If you are not sure, review the instructions before answering.
                 </p>
               </div>
               ${questionsHtml}
@@ -1255,6 +1227,11 @@
             if (value === null) allAnswered = false;
             if (value !== q.correct) allCorrect = false;
           });
+          const feedback = document.getElementById("comp-feedback");
+          if (!allAnswered) {
+            if (feedback) feedback.textContent = "Please answer both questions before continuing.";
+            return;
+          }
           state.comprehension.attempts.push({
             at: new Date().toISOString(),
             attempt: state.comprehension.attempts.length + 1,
@@ -1262,12 +1239,11 @@
             allAnswered,
             allCorrect,
           });
-          const feedback = document.getElementById("comp-feedback");
-          if (!allAnswered) {
-            if (feedback) feedback.textContent = "Please answer both questions before continuing.";
-            return;
-          }
           if (!allCorrect) {
+            if (state.comprehension.attempts.length >= CONFIG.maxComprehensionAttempts) {
+              renderComprehensionFailed();
+              return;
+            }
             // Do not reveal which item is wrong; send them back to the text.
             if (feedback) feedback.textContent = "One or more answers are not correct. Please re-read the instructions and try again.";
             return;
@@ -1275,6 +1251,34 @@
           state.comprehension.passed = true;
           state.comprehension.completedAt = new Date().toISOString();
           startExperiment();
+        }
+
+        function renderComprehensionFailed() {
+          state.screen = "comprehensionFailed";
+          state.finishedAt = new Date().toISOString();
+          logEvent("comprehension_failed", {
+            attempts: state.comprehension.attempts.length,
+          });
+          render(h`
+            <section class="stack">
+              <div>
+                <h1>The study has ended</h1>
+                <p class="muted">
+                  You did not answer the comprehension check correctly after two tries, so you
+                  should not continue with this study.
+                </p>
+              </div>
+              <div class="panel notice">
+                <h2>Please return to Prolific</h2>
+                <p>
+                  Please close this survey and return to Prolific, then select
+                  <strong>Stop Without Completing</strong>. You will not be paid for
+                  this study.
+                </p>
+              </div>
+            </section>
+          `);
+          postResultToParent("comprehension_failed");
         }
 
         function renderStimulus() {
@@ -1513,12 +1517,36 @@
           return average(values.filter((value) => Number.isFinite(value)));
         }
 
-        // saveSubmission is a no-op in this standalone file; the Qualtrics build
-        // (build_qualtrics.py) replaces it to postMessage results to the parent.
-        function saveSubmission() {
-          // [iframe edit B] Post compact results to the Qualtrics parent frame.
-          // Rounds are encoded as "K,reportPct,outcome,score,inspMs,timeout"
-          // joined by ";" -- a few hundred chars, under the 1,000-char cap.
+        // Post compact results to the Qualtrics parent frame. Rounds are encoded
+        // as "K,reportPct,outcome,score,inspMs,timeout" joined by ";" -- a few
+        // hundred chars, under the 1,000-char cap.
+        function compactRoundData(rounds) {
+          return (rounds || []).map(function (r) {
+            return [
+              Math.round((r.p || 0) * 100),
+              Math.round((r.report || 0) * 100),
+              (r.outcome == null ? "" : r.outcome),
+              (Math.round((r.score || 0) * 100) / 100),
+              Math.round(r.inspectionMs || 0),
+              (r.timedOut ? 1 : 0)
+            ].join(",");
+          }).join(";");
+        }
+
+        function compactComprehensionData() {
+          return (state.comprehension.attempts || []).map(function (a) {
+            const responses = a.responses || {};
+            return [
+              a.attempt || "",
+              a.allAnswered ? 1 : 0,
+              a.allCorrect ? 1 : 0,
+              responses.report_target || "",
+              responses.point_decider || ""
+            ].join(",");
+          }).join(";");
+        }
+
+        function postResultToParent(exitStatus) {
           state.backendSave = {
             status: "posted",
             submissionId: state.submissionId,
@@ -1527,44 +1555,21 @@
             error: null,
           };
           try {
-            const enc = function (rounds) {
-              return (rounds || []).map(function (r) {
-                return [
-                  Math.round((r.p || 0) * 100),
-                  Math.round((r.report || 0) * 100),
-                  (r.outcome == null ? "" : r.outcome),
-                  (Math.round((r.score || 0) * 100) / 100),
-                  Math.round(r.inspectionMs || 0),
-                  (r.timedOut ? 1 : 0)
-                ].join(",");
-              }).join(";");
-            };
-            const encComprehension = function () {
-              return (state.comprehension.attempts || []).map(function (a) {
-                const responses = a.responses || {};
-                return [
-                  a.attempt || "",
-                  a.allAnswered ? 1 : 0,
-                  a.allCorrect ? 1 : 0,
-                  responses.report_target || "",
-                  responses.point_decider || ""
-                ].join(",");
-              }).join(";");
-            };
             const responseId =
               new URLSearchParams(window.location.search).get("responseId") || "";
             const fields = {
-              ri_rounds: enc(state.paidRounds),
-              ri_practice: enc(state.practice),
-              ri_comprehension: encComprehension(),
+              ri_rounds: compactRoundData(state.paidRounds),
+              ri_practice: compactRoundData(state.practice),
+              ri_comprehension: compactComprehensionData(),
               ri_rule: state.rule || "",
-              ri_total_score: String(totalPaidScore()),
+              ri_total_score: exitStatus === "complete" ? String(totalPaidScore()) : "",
               ri_paying_round_index:
-                state.payingRoundIndex == null ? "" : String(state.payingRoundIndex),
+                exitStatus === "complete" && state.payingRoundIndex != null ? String(state.payingRoundIndex) : "",
               ri_bonus_usd:
-                state.bonusPaymentUsd == null ? "" : String(state.bonusPaymentUsd),
+                exitStatus === "complete" && state.bonusPaymentUsd != null ? String(state.bonusPaymentUsd) : "",
               ri_submission_id: state.submissionId || "",
               ri_response_id: responseId,
+              ri_exit_status: exitStatus,
               ri_schema: CONFIG.schemaVersion
             };
             if (window.parent && window.parent !== window) {
@@ -1575,6 +1580,10 @@
             state.backendSave.status = "post_error";
             state.backendSave.error = String(error);
           }
+        }
+
+        function saveSubmission() {
+          postResultToParent("complete");
           if (state.screen === "finished") renderFinished();
         }
 
@@ -1586,7 +1595,7 @@
           state.assignmentSequence = assignment.sequence;
           state.assignmentOverridden = assignment.overridden;
           state.assignmentReused = assignment.reused;
-          renderConsent();
+          renderIntro();
         }());
       }());
     </script>
