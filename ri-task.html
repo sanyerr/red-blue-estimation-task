@@ -487,8 +487,6 @@
           paidSchedule: [41, 59, 71, 30, 64, 39, 31, 66],
           maxForecastSeconds: 60,
           schemaVersion: "ri-balls-v2",
-          prolificCompletionCode: "REPLACE_WITH_PROLIFIC_CODE",
-          prolificCompletionUrl: "https://app.prolific.com/submissions/complete?cc=REPLACE_WITH_PROLIFIC_CODE",
           bonusUsdPerPoint: 0.02,
         };
 
@@ -690,10 +688,6 @@
 
         function fmtSeconds(ms) {
           return Number.isFinite(ms) ? (ms / 1000).toFixed(2) + "s" : "";
-        }
-
-        function fmtMeanSeconds(values) {
-          return fmtSeconds(averageFinite(values));
         }
 
         function fmtPp(x) {
@@ -1112,27 +1106,16 @@
             <section class="stack">
               <div>
                 <h1>Red-Blue Estimation Task</h1>
-                <p class="muted">
-                  Standalone preview mode. This version does not upload data or verify Prolific completion.
-                </p>
-              </div>
-              <div class="panel">
-                <h2>Not for Prolific Fielding</h2>
-                <p>
-                  Use the backend-served version for real Prolific sessions so assignment, saving,
-                  duplicate checks, and completion can be verified.
-                </p>
-                ${missing.length ? `<p class="small muted">Missing Prolific parameter(s): ${missing.map(escapeHtml).join(", ")}.</p>` : ""}
               </div>
               <div class="panel notice">
-                <h2>Consent Preview</h2>
+                <h2>Consent</h2>
                 <p>
-                  Your reports, response times, payment outcomes, browser user agent, and Prolific
-                  identifiers would be saved in the backend version.
+                  Your estimates, response times, and payment outcomes are recorded for
+                  research, together with your Prolific ID. Participation is voluntary.
                 </p>
                 <label class="row small" style="align-items: flex-start;">
                   <input id="consent-check" type="checkbox" style="margin-top: 3px;">
-                  <span>I have read this information and agree to continue in preview mode.</span>
+                  <span>I have read this information and agree to continue.</span>
                 </label>
               </div>
               <button id="continue-consent" disabled>Continue</button>
@@ -1447,61 +1430,32 @@
           document.getElementById("continue").addEventListener("click", startPaidRounds);
         }
 
-        function saveStatusHtml() {
-          return h`
-            <div class="panel notice">
-              <h2>Export Your Data</h2>
-              <p>
-                This is the standalone version of the study; nothing is uploaded.
-                Use the JSON or CSV buttons to download your submission.
-              </p>
-              <p class="small muted">
-                Submission id: <strong>${escapeHtml(state.submissionId)}</strong>.
-              </p>
-            </div>
-          `;
-        }
-
         function renderFinished() {
           const allPaid = flatPaidRounds();
-          const rows = allPaid;
-          const meanAbsError = averageFinite(allPaid.map((round) => Math.abs(round.report - round.p)));
-          const meanInspectionMs = averageFinite(allPaid.map((round) => round.inspectionMs));
           const totalScore = totalPaidScore();
           const bonusPaymentUsd = state.bonusPaymentUsd == null ? finalBonusUsd() : state.bonusPaymentUsd;
           const drawnIndex = state.payingRoundIndex;
           const drawnRoundNumber = drawnIndex == null ? null : drawnIndex + 1;
           const drawnRound = payingRound();
-          const ruleLabel = RULES[state.ruleId].label;
-          const thresholdRounds = allPaid.filter(isThresholdRegionRound);
-          const farRounds = allPaid.filter((round) => !isThresholdRegionRound(round));
-          const thresholdStats = roundGroupStats(thresholdRounds);
-          const farStats = roundGroupStats(farRounds);
-          const timeoutCount = allPaid.filter((round) => round.timedOut).length;
-          const snapshotText = finalSnapshotText(allPaid, drawnRoundNumber, bonusPaymentUsd, ruleLabel);
           const roundRowsHtml = allPaid.map((round, i) => {
             const isDrawn = i === drawnIndex;
-            const error = round.report - round.p;
-            const roundBonusUsd = scoreToBonusUsd(round.score);
             return h`
               <tr${isDrawn ? ' style="background: #e8f3f1;"' : ""}>
                 <td>${i + 1}${isDrawn ? " <strong>(selected)</strong>" : ""}</td>
                 <td>${fmtProb(round.p)}</td>
                 <td>${fmtProb(round.report)}</td>
-                <td>${(100 * error).toFixed(1)} pp</td>
                 <td>${round.outcome === 1 ? "Red" : "Blue"}</td>
                 <td>${fmtPoints(round.score)}</td>
-                <td>${fmtSeconds(round.inspectionMs)}</td>
-                <td>$${roundBonusUsd.toFixed(2)}</td>
               </tr>
             `;
           }).join("");
           render(h`
             <section class="stack">
-              <h1>Demo Complete</h1>
+              <h1>All done &mdash; thank you!</h1>
+              <p>Thank you for completing the task. Your responses have been recorded.</p>
               <div class="three">
                 <div class="metric">
-                  <span class="muted">Scored rounds</span>
+                  <span class="muted">Rounds completed</span>
                   <strong>${allPaid.length}</strong>
                 </div>
                 <div class="metric">
@@ -1509,99 +1463,45 @@
                   <strong>${fmtPoints(allPaid.length ? totalScore / allPaid.length : 0)}</strong>
                 </div>
                 <div class="metric">
-                  <span class="muted">Bonus</span>
+                  <span class="muted">Your bonus</span>
                   <strong>$${bonusPaymentUsd.toFixed(2)}</strong>
                 </div>
               </div>
-              ${drawnRound ? h`
-                <p class="small muted">
-	                  Drawn round: round ${drawnRoundNumber}
-	                  (${ruleLabel}) &mdash; score
-	                  ${fmtPoints(drawnRound.score)}, paying a $${bonusPaymentUsd.toFixed(2)} bonus.
-	                </p>
-              ` : ""}
               <div class="panel notice">
-                <h2>Bonus Payment</h2>
+                <h2>Your bonus</h2>
                 <p>
-                  Selected-round score: ${drawnRound ? fmtPoints(drawnRound.score) : "Pending"}.
-                  Bonus payment: $${bonusPaymentUsd.toFixed(2)} at $${CONFIG.bonusUsdPerPoint.toFixed(2)} per selected-round point.
+                  ${drawnRound ? h`One of your ${allPaid.length} rounds was selected at random for
+                  payment: round ${drawnRoundNumber}, which scored ${fmtPoints(drawnRound.score)}.
+                  At $${CONFIG.bonusUsdPerPoint.toFixed(2)} per point, that is a bonus of
+                  <strong>$${bonusPaymentUsd.toFixed(2)}</strong>.` : h`Your bonus is computed from
+                  one randomly selected round.`}
+                  The bonus is paid through Prolific after the study.
                 </p>
               </div>
               <div class="panel">
-                <h2>Summary</h2>
+                <h2>Your rounds</h2>
                 <p class="small muted">
-                  Payment rule: ${ruleLabel}.
-                </p>
-              </div>
-              <div class="panel notice">
-                <h2>Stress-Test Snapshot</h2>
-                <p class="small muted">
-                  Screenshot this panel or copy it when sharing a test run.
-                </p>
-                <pre id="stress-snapshot" class="data-box">${escapeHtml(snapshotText)}</pre>
-                <div class="row">
-                  <button class="secondary" id="copy-snapshot">Copy snapshot</button>
-                  <span id="copy-snapshot-status" class="small muted"></span>
-                </div>
-              </div>
-              <div class="panel">
-                <h2>Your Scored Rounds</h2>
-                <p class="small muted">
-                  A full breakdown of every scored round. The true red share is now revealed for each.
-                  The highlighted row is the round selected at random to determine your bonus.
+                  A summary of all your rounds. The true red percentage is now revealed for each;
+                  the highlighted row is the round selected at random for your bonus.
                 </p>
                 <table>
                   <thead>
                     <tr>
                       <th>Round</th>
                       <th>True red share</th>
-                      <th>Your report</th>
-                      <th>Error</th>
+                      <th>Your estimate</th>
                       <th>Outcome</th>
                       <th>Score</th>
-                      <th>Time spent</th>
-                      <th>Bonus if selected</th>
                     </tr>
                   </thead>
                   <tbody>${roundRowsHtml}</tbody>
                 </table>
               </div>
-              <div class="split">
-                <div class="panel">
-                  <h2>Pooled Mechanism Diagnostics</h2>
-                  <table>
-                    <tbody>
-                      <tr><th>Mean absolute report error</th><td>${(100 * meanAbsError).toFixed(1)} percentage points</td></tr>
-                      <tr><th>Mean inspection time</th><td>${fmtSeconds(meanInspectionMs)}</td></tr>
-                      <tr><th>Threshold-region rounds</th><td>${thresholdStats.n} of ${allPaid.length}; mean time ${fmtMeanSeconds(thresholdRounds.map((round) => round.inspectionMs))}; mean error ${fmtPp(thresholdStats.meanAbsError)}</td></tr>
-                      <tr><th>Far rounds</th><td>${farStats.n} of ${allPaid.length}; mean time ${fmtMeanSeconds(farRounds.map((round) => round.inspectionMs))}; mean error ${fmtPp(farStats.meanAbsError)}</td></tr>
-                      <tr><th>Timeouts</th><td>${timeoutCount} of ${allPaid.length}</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-                ${saveStatusHtml()}
-              </div>
-              <div class="split">
-                <div class="panel">
-                  <h2>Export</h2>
-                  <p class="muted">Download your submission &mdash; the standalone version does not upload anything.</p>
-                  <div class="row">
-                    <button id="download-json">JSON</button>
-                    <button class="secondary" id="download-csv">CSV</button>
-                    <button class="secondary" id="restart">Restart</button>
-                  </div>
-                </div>
-              </div>
-              <pre class="data-box">${escapeHtml(JSON.stringify(rows, null, 2))}</pre>
+              <p class="small muted">
+                Please click the button below to submit your responses and finish.
+              </p>
             </section>
           `);
-          document.getElementById("download-json").addEventListener("click", downloadJson);
-          document.getElementById("download-csv").addEventListener("click", downloadCsv);
-          document.getElementById("copy-snapshot").addEventListener("click", copyStressSnapshot);
-          document.getElementById("restart").addEventListener("click", () => {
-            state.screen = "intro";
-            renderIntro();
-          });
         }
 
         function average(values) {
@@ -1613,58 +1513,8 @@
           return average(values.filter((value) => Number.isFinite(value)));
         }
 
-        function isThresholdRegionRound(round) {
-          return Math.abs(round.p - CONFIG.decisionThreshold) <= 0.1;
-        }
-
-        function roundGroupStats(rounds) {
-          return {
-            n: rounds.length,
-            meanAbsError: averageFinite(rounds.map((round) => Math.abs(round.report - round.p))),
-            meanInspectionMs: averageFinite(rounds.map((round) => round.inspectionMs)),
-          };
-        }
-
-        function finalSnapshotText(allPaid, drawnRoundNumber, bonusPaymentUsd, ruleLabel) {
-          const thresholdRounds = allPaid.filter(isThresholdRegionRound);
-          const farRounds = allPaid.filter((round) => !isThresholdRegionRound(round));
-          const thresholdStats = roundGroupStats(thresholdRounds);
-          const farStats = roundGroupStats(farRounds);
-          const meanAbsError = averageFinite(allPaid.map((round) => Math.abs(round.report - round.p)));
-          const meanInspectionMs = averageFinite(allPaid.map((round) => round.inspectionMs));
-          const timeoutCount = allPaid.filter((round) => round.timedOut).length;
-          const lines = [
-            "RI balls demo snapshot",
-            "submission: " + state.submissionId,
-            "finished: " + (state.finishedAt || ""),
-            "rule: " + state.ruleId + " (" + ruleLabel + ")",
-            "paid_schedule: " + state.paidSchedule.join(","),
-            "selected_round: " + (drawnRoundNumber || "none") + "; bonus: $" + bonusPaymentUsd.toFixed(2),
-            "overall: mean_abs_error=" + fmtPp(meanAbsError) + "; mean_time=" + fmtSeconds(meanInspectionMs) + "; timeouts=" + timeoutCount + "/" + allPaid.length,
-            "near_35: n=" + thresholdStats.n + "; mean_abs_error=" + fmtPp(thresholdStats.meanAbsError) + "; mean_time=" + fmtSeconds(thresholdStats.meanInspectionMs),
-            "far: n=" + farStats.n + "; mean_abs_error=" + fmtPp(farStats.meanAbsError) + "; mean_time=" + fmtSeconds(farStats.meanInspectionMs),
-            "rounds:",
-          ];
-          allPaid.forEach((round, i) => {
-            const selected = i + 1 === drawnRoundNumber ? " selected" : "";
-            const region = isThresholdRegionRound(round) ? "near35" : "far";
-            const outcome = round.outcome === 1 ? "red" : "blue";
-            lines.push(
-              "  r" + (i + 1) + selected +
-              " [" + region + "] true=" + fmtProb(round.p) +
-              " report=" + fmtProb(round.report) +
-              " error=" + fmtPp(round.report - round.p) +
-              " outcome=" + outcome +
-              " score=" + fmtPoints(round.score) +
-              " time=" + fmtSeconds(round.inspectionMs) +
-              (round.timedOut ? " timed_out" : "")
-            );
-          });
-          return lines.join("\n");
-        }
-
-        // Static build: no backend. Mark the submission as "skipped" so the
-        // finished screen shows the export buttons as the primary save path.
+        // saveSubmission is a no-op in this standalone file; the Qualtrics build
+        // (build_qualtrics.py) replaces it to postMessage results to the parent.
         function saveSubmission() {
           // [iframe edit B] Post compact results to the Qualtrics parent frame.
           // Rounds are encoded as "K,reportPct,outcome,score,inspMs,timeout"
@@ -1713,137 +1563,6 @@
             state.backendSave.error = String(error);
           }
           if (state.screen === "finished") renderFinished();
-        }
-
-        function exportPayload() {
-          return {
-            meta: {
-              source: "ri_balls_experiment_demo_static.html",
-              schemaVersion: CONFIG.schemaVersion,
-              submissionId: state.submissionId,
-              prolificPid: participantIds.prolificPid,
-              studyId: participantIds.studyId,
-              sessionId: participantIds.sessionId,
-              consentAccepted: state.consentAccepted,
-              missingProlificIds: missingProlificIds(),
-              startedAt: state.startedAt,
-              finishedAt: state.finishedAt,
-              rule: state.rule,
-              assignmentKey: state.assignmentKey,
-              assignmentSequence: state.assignmentSequence,
-              assignmentOverridden: state.assignmentOverridden,
-              assignmentReused: state.assignmentReused,
-              paidInspectionTiming: "self-paced",
-              stimulusRandomization: "client_side_random_shuffle_each_round",
-              outcomeTiming: "drawn_after_report_submission",
-              paymentScheme: "random_round_direct_score_bonus",
-              paidScheduleRandomization: "client_side_simple_shuffle",
-              configuredPaidSchedule: CONFIG.paidSchedule,
-              realizedPaidSchedule: state.paidSchedule,
-              targetScheduleMeanExpectedScore: CONFIG.targetExpectedScore,
-              totalScore: totalPaidScore(),
-              payingRoundIndex: state.payingRoundIndex,
-              bonusPaymentUsd: state.bonusPaymentUsd,
-              bonusUsdPerPoint: CONFIG.bonusUsdPerPoint,
-              completionCode: CONFIG.prolificCompletionCode,
-              completionUrl: CONFIG.prolificCompletionUrl,
-              totalBalls: CONFIG.totalBalls,
-              decisionThreshold: CONFIG.decisionThreshold,
-              paidRounds: CONFIG.paidRounds,
-              userAgent: window.navigator.userAgent,
-            },
-            comprehension: state.comprehension,
-            practice: state.practice,
-            paidRounds: state.paidRounds,
-            events: state.events,
-          };
-        }
-
-        function downloadJson() {
-          downloadBlob(
-            "ri-balls-demo.json",
-            "application/json",
-            JSON.stringify(exportPayload(), null, 2)
-          );
-        }
-
-        function downloadCsv() {
-          const rows = [
-            ["phase", "round", "rule", "score_rule", "schedule_order", "p", "red_percent", "red_count", "blue_count", "report", "report_red_count", "outcome", "score", "bonus_usd_if_selected", "inspection_ms", "response_ms", "timed_out", "max_forecast_ms"],
-          ];
-          const sources = [
-            ["practice", state.rule, state.practice],
-            ["paid", state.rule, state.paidRounds],
-          ];
-          sources.forEach(([phase, rule, rounds]) => {
-            rounds.forEach((round, i) => {
-              const bonusUsdIfSelected = phase === "paid" ? scoreToBonusUsd(round.score) : 0;
-              rows.push([
-                phase,
-                i + 1,
-                rule,
-                round.scoreRule,
-                phase === "paid" ? state.paidSchedule.join(" ") : CONFIG.practiceFractions.join(" "),
-                round.p,
-                round.redPercent,
-                round.redCount,
-                round.blueCount,
-                round.report,
-                round.reportRedCount,
-                round.outcome,
-                round.score,
-                bonusUsdIfSelected,
-                round.inspectionMs,
-                round.responseMs,
-                round.timedOut,
-                round.maxForecastMs,
-              ]);
-            });
-          });
-          const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
-          downloadBlob("ri-balls-demo.csv", "text/csv", csv);
-        }
-
-        function csvCell(value) {
-          const s = value === null || value === undefined ? "" : String(value);
-          if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-          return s;
-        }
-
-        function downloadBlob(filename, type, text) {
-          const blob = new Blob([text], { type });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          window.setTimeout(() => URL.revokeObjectURL(url), 0);
-        }
-
-        function copyStressSnapshot() {
-          const snapshot = document.getElementById("stress-snapshot");
-          const status = document.getElementById("copy-snapshot-status");
-          const text = snapshot ? snapshot.textContent : "";
-          if (!text) return;
-          if (!window.navigator.clipboard || !window.navigator.clipboard.writeText) {
-            if (status) status.textContent = "Select the text above to copy it.";
-            return;
-          }
-          window.navigator.clipboard.writeText(text).then(() => {
-            if (status) status.textContent = "Copied.";
-          }).catch(() => {
-            if (status) status.textContent = "Select the text above to copy it.";
-          });
-        }
-
-        function escapeHtml(text) {
-          return text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;");
         }
 
         (function bootStatic() {
