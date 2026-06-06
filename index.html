@@ -495,13 +495,13 @@
           ri: {
             id: "ri",
             label: "Precision matters near 35%",
-            short: "Small mistakes cost more points when your report is a little above or below 35% than when it is far from 35%.",
+            short: "Small mistakes cost more points when your estimate is a little above or below 35% than when it is far from 35%.",
             lineClass: "line-ri",
           },
           uniform: {
             id: "uniform",
             label: "Precision matters everywhere",
-            short: "Small mistakes cost roughly the same number of points wherever your report falls on the 0&ndash;100% scale.",
+            short: "Small mistakes cost roughly the same number of points wherever your estimate falls on the 0&ndash;100% scale.",
             lineClass: "line-uniform",
           },
         };
@@ -516,7 +516,7 @@
         const COMPREHENSION_QUESTIONS = [
           {
             id: "report_target",
-            prompt: "The balls look about 70% red. To score the most points, you should report about:",
+            prompt: "The balls look about 70% red. To score the most points, you should estimate about:",
             options: [
               { value: "35", label: "35" },
               { value: "50", label: "50" },
@@ -527,7 +527,7 @@
           },
           {
             id: "point_decider",
-            prompt: "After you report, what decides your points?",
+            prompt: "After you submit your estimate, what decides your points?",
             options: [
               { value: "random_ball", label: "One ball picked at random from the balls you saw" },
               { value: "exact_percent", label: "The exact percentage of red balls" },
@@ -693,6 +693,12 @@
 
         function fmtPp(x) {
           return (100 * x).toFixed(1) + " pp";
+        }
+
+        function fmtPercentagePoints(x) {
+          const value = 100 * Math.abs(x);
+          const unit = Math.abs(value - 1) < 0.05 ? "percentage point" : "percentage points";
+          return value.toFixed(1) + " " + unit;
         }
 
         function normalizePercent(value, fallback) {
@@ -1124,12 +1130,12 @@
                 </p>
                 <ol class="small">
                   <li><strong>After you have given your answer, we pick one of the balls at random.</strong></li>
-                  <li><strong>That ball decides the round's points.</strong> If it's red, you get more points if you reported a higher percentage of red balls; if it's blue, you get more points if you reported a lower percentage of red balls.</li>
+                  <li><strong>That ball decides the round's points.</strong> If it's red, you get more points if you estimated a higher percentage of red balls; if it's blue, you get more points if you estimated a lower percentage of red balls.</li>
                   <li><strong>The estimate that maximizes the expected payment is the true percentage of red balls.</strong></li>
                   <li><strong>Each point is worth 2 cents.</strong> A score of 80 pays $1.60; a score of 20 pays $0.40.</li>
                 </ol>
                 <p class="small">
-                  The best way to raise your expected bonus is to report your honest
+                  The best way to raise your expected bonus is to give your honest
                   best estimate of the percentage of red balls.
                 </p>
               </div>
@@ -1142,13 +1148,13 @@
                     <strong>What this means while you inspect.</strong>
                     More careful inspection matters most when the display looks close to 35% red.
                     If it looks clearly far from 35%, a quick honest estimate is usually enough.
-                    In every round, report your honest best guess.
+                    In every round, give your honest best guess.
                   </p>
                   <p class="small">
                     <strong>What this does <em>not</em> mean.</strong>
-                    It does not mean you should always report 35%. Your points still
-                    depend on how close your report is to what actually shows up in the
-                    balls &mdash; reporting 35% when the true share is, say, 80% leads
+                    It does not mean you should always estimate 35%. Your points still
+                    depend on how close your estimate is to what actually shows up in the
+                    balls &mdash; estimating 35% when the true share is, say, 80% leads
                     to an expected loss in points.
                   </p>
                 ` : ""}
@@ -1378,11 +1384,11 @@
                   <strong>${rows.length}</strong>
                 </div>
                 <div class="metric">
-                  <span class="muted">Mean error</span>
-                  <strong>${fmtPp(meanAbsError)}</strong>
+                  <span class="muted">Average error</span>
+                  <strong>${fmtPercentagePoints(meanAbsError)}</strong>
                 </div>
                 <div class="metric">
-                  <span class="muted">Mean time</span>
+                  <span class="muted">Average time</span>
                   <strong>${fmtSeconds(meanInspectionMs)}</strong>
                 </div>
               </div>
@@ -1402,7 +1408,7 @@
                   That selected round determines your final bonus.
                 </p>
                 <p>
-                  Your best strategy is to report the red percentage you honestly think is
+                  Your best strategy is to estimate the red percentage you honestly think is
                   most likely.
                 </p>
               </div>
@@ -1413,8 +1419,8 @@
                     <tr>
                       <th>Round</th>
                       <th>True red share</th>
-                      <th>Your report</th>
-                      <th>Error</th>
+                      <th>Your estimate</th>
+                      <th>How far off</th>
                       <th>Outcome</th>
                       <th>Score</th>
                       <th>Other outcome score</th>
