@@ -486,7 +486,7 @@
           // effects do not confound the high-vs-far contrast.
           paidSchedule: [41, 59, 71, 30, 64, 39, 31, 66],
           maxForecastSeconds: 60,
-          schemaVersion: "ri-balls-v2",
+          schemaVersion: "ri-balls-v3",
           bonusUsdPerPoint: 0.02,
         };
 
@@ -615,7 +615,7 @@
         function ruleOverride() {
           // [iframe edit A] Arm comes from the Qualtrics randomizer via the
           // iframe URL ("arm"); fall back to the legacy "rule" param for local
-          // testing (e.g. ri-task.html?arm=ri).
+          // testing (e.g. index.html?arm=ri).
           const params = new URLSearchParams(window.location.search);
           const requested = params.get("arm") || params.get("rule");
           if (requested === "ri" || requested === "uniform") return requested;
@@ -1539,11 +1539,24 @@
                 ].join(",");
               }).join(";");
             };
+            const encComprehension = function () {
+              return (state.comprehension.attempts || []).map(function (a) {
+                const responses = a.responses || {};
+                return [
+                  a.attempt || "",
+                  a.allAnswered ? 1 : 0,
+                  a.allCorrect ? 1 : 0,
+                  responses.report_target || "",
+                  responses.point_decider || ""
+                ].join(",");
+              }).join(";");
+            };
             const responseId =
               new URLSearchParams(window.location.search).get("responseId") || "";
             const fields = {
               ri_rounds: enc(state.paidRounds),
               ri_practice: enc(state.practice),
+              ri_comprehension: encComprehension(),
               ri_rule: state.rule || "",
               ri_total_score: String(totalPaidScore()),
               ri_paying_round_index:
